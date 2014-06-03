@@ -57,13 +57,25 @@ class Epson_Thermal(object):
 
     def print_bitmap(self, pixels, w, h):
 
-        # Set line spacing to 24 dots
+        dyl = chr(h % 256)
+        dyh = chr(h / 256)
+
         byte_array = [
             chr(27),    # ESC
-            chr(51),    # 3
-            chr(24)]
-        self._write(''.join(byte_array))
+            chr(87),    # W
+            chr(0),
+            chr(0),
+            chr(0),
+            chr(0),
+            chr(0),
+            chr(2),
+            dyl,
+            dyh]
 
+        byte_array.append(chr(27))
+        byte_array.append(chr(76))
+
+        self._write(''.join(byte_array))
 
         # Calculate nL and nH
         nh = chr(w / 256)
@@ -93,16 +105,16 @@ class Epson_Thermal(object):
                     byte_array.append(chr(slice))
 
             offset += 24
+
+            byte_array.append(chr(27))
+            byte_array.append(chr(74))
+            byte_array.append(chr(48))
             self._write(''.join(byte_array))
-            self.linefeed()
 
 
-        # Restore the line spacing to the default 30 dots
-        byte_array = [
-            chr(27),    # ESC
-            chr(51),    # 3
-            chr(30)]
-        self._write(''.join(byte_array))
+        # Return to page mode
+        self._write(chr(12))
+
 
     def get_pixels_and_dimensions(self, image_path):
         import Image
