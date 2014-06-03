@@ -58,3 +58,8 @@ class Epson_Thermal(object):
     # def print_bitmap(self, pixels, w, h):
 
 
+if __name__ == '__main__':
+    printer = Epson_Thermal(0x04b8,0x0e03)  # EPSON TM-T20
+    printer.print_text("Hello world")
+    printer.linefeed()
+    printer.cut()
