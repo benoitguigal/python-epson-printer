@@ -20,7 +20,7 @@ class Epson_Thermal(object):
         self.in_ep     = in_ep
         self.out_ep    = out_ep
 
-        # Search device on USB tree and set is as escpos device
+        # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=self.idVendor, idProduct=self.idProduct)
         if self.printer is None:
             print "Cable isn't plugged in"
@@ -38,7 +38,7 @@ class Epson_Thermal(object):
             print "Could not set configuration: %s" % str(e)
 
     def _write(self, msg):
-        self.device.write(self.out_ep, msg, self.interface)
+        self.printer.write(self.out_ep, msg, self.interface)
 
 
     def linefeed(self):
