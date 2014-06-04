@@ -64,7 +64,7 @@ class Epson_Thermal(object):
         byte_array = [
             chr(27),    # ESC
             chr(87),    # W
-            chr(0),     # xL
+            chr(46),     # xL
             chr(0),     # xH
             chr(0),     # yL
             chr(0),     # yH
