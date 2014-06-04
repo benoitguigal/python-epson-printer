@@ -57,21 +57,23 @@ class Epson_Thermal(object):
 
     def print_bitmap(self, pixels, w, h):
 
-        dyl = chr(h % 256)
-        dyh = chr(h / 256)
+        dyl = chr(2 * h % 256)
+        dyh = chr(2 * h / 256)
 
+        # Set the size of the print area
         byte_array = [
             chr(27),    # ESC
             chr(87),    # W
-            chr(0),
-            chr(0),
-            chr(0),
-            chr(0),
-            chr(0),
-            chr(2),
+            chr(0),     # xL
+            chr(0),     # xH
+            chr(0),     # yL
+            chr(0),     # yH
+            chr(0),     # dxL
+            chr(2),     # dxH
             dyl,
             dyh]
 
+        # Enter page mode
         byte_array.append(chr(27))
         byte_array.append(chr(76))
 
@@ -106,13 +108,14 @@ class Epson_Thermal(object):
 
             offset += 24
 
-            byte_array.append(chr(27))
-            byte_array.append(chr(74))
+            
+            byte_array.append(chr(27)) # ESC
+            byte_array.append(chr(74)) # J
             byte_array.append(chr(48))
             self._write(''.join(byte_array))
 
 
-        # Return to page mode
+        # Return to standard mode
         self._write(chr(12))
 
 
@@ -140,4 +143,4 @@ if __name__ == '__main__':
     (pixels, w, h) = printer.get_pixels_and_dimensions("logo.png")
     printer.print_bitmap(pixels, w, h)
     printer.linefeed()
-    printer.cut()
+
