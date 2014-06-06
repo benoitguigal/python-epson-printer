@@ -1,6 +1,7 @@
 __author__ = 'benoit'
 
 import usb.core
+from PIL import Image
 
 class Epson_Thermal(object):
 
@@ -23,19 +24,19 @@ class Epson_Thermal(object):
         # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=self.idVendor, idProduct=self.idProduct)
         if self.printer is None:
-            print "Cable isn't plugged in"
+            print("Cable isn't plugged in")
 
         if self.printer.is_kernel_driver_active(0):
             try:
                 self.printer.detach_kernel_driver(0)
             except usb.core.USBError as e:
-                print "Could not detatch kernel driver: %s" % str(e)
+                print("Could not detatch kernel driver: %s" % str(e))
 
         try:
             self.printer.set_configuration()
             self.printer.reset()
         except usb.core.USBError as e:
-            print "Could not set configuration: %s" % str(e)
+            print("Could not set configuration: %s" % str(e))
 
     def _write(self, msg):
         self.printer.write(self.out_ep, msg, self.interface)
@@ -58,7 +59,7 @@ class Epson_Thermal(object):
     def print_bitmap(self, pixels, w, h):
 
         dyl = chr(2 * h % 256)
-        dyh = chr(2 * h / 256)
+        dyh = chr(int(2 * h / 256))
 
         # Set the size of the print area
         byte_array = [
@@ -80,7 +81,7 @@ class Epson_Thermal(object):
         self._write(''.join(byte_array))
 
         # Calculate nL and nH
-        nh = chr(w / 256)
+        nh = chr(int(w / 256))
         nl = chr(w % 256)
 
         offset = 0
@@ -97,7 +98,7 @@ class Epson_Thermal(object):
                 for k in range(3):
                     slice = 0
                     for b in range(8):
-                        y = (((offset / 8) + k) * 8) + b
+                        y = offset + (k * 8) + b
                         i = (y * w) + x
                         v = 0
                         if i < len(pixels):
@@ -120,7 +121,6 @@ class Epson_Thermal(object):
 
 
     def get_pixels_and_dimensions(self, image_path):
-        import Image
         i = Image.open(image_path)
         monochrome = i.convert('1')
         data = monochrome.getdata()
