@@ -120,27 +120,12 @@ class Epson_Thermal(object):
         self._write(chr(12))
 
 
-    def get_pixels_and_dimensions(self, image_path):
-        i = Image.open(image_path)
-        monochrome = i.convert('1')
-        data = monochrome.getdata()
-        pixels = []
-        for i in range(len(data)):
-            if data[i] == 255:
-                pixels.append(0)
-            else:
-                pixels.append(1)
-
-        (w, h) = monochrome.size
-        return (pixels, w, h)
-
-
-
 if __name__ == '__main__':
+    from util import BitmapData
     printer = Epson_Thermal(0x04b8,0x0e03)  # EPSON TM-T20
     printer.print_text("Hello world")
     printer.linefeed()
-    (pixels, w, h) = printer.get_pixels_and_dimensions("logo.png")
-    printer.print_bitmap(pixels, w, h)
+    bitmap = BitmapData.fromFileImage("logo.png")
+    printer.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
     printer.linefeed()
 
