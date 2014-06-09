@@ -42,13 +42,20 @@ class Epson_Thermal(object):
         msg = ''.join([chr(b) for b in byte_array])
         self.printer.write(self.out_ep, msg, self.interface)
 
-
-    def linefeed(self):
-        self.write_bytes([10]) # LF
+    # Feeds by the specified number of lines
+    def linefeed(self, lines = 1):
+        if lines == 1:
+            self.write_bytes([10]) # LF
+        else:
+            self.write_bytes([
+                27,     # ESC
+                100,    # d
+                lines])
 
     def print_text(self, msg):
         self.printer.write(self.out_ep, msg, self.interface)
 
+    # Full paper cut
     def cut(self):
         byte_array = [
             29, # GS
@@ -56,6 +63,8 @@ class Epson_Thermal(object):
             0]  # \0
         self.write_bytes(byte_array)
 
+    # Print bitmap pixel array for the specified image width and image height
+    # To convert an existing image to a 1 and 0 bitmap array, see util.BitmapData
     def print_bitmap(self, pixels, w, h):
 
         byte_array = []
@@ -121,13 +130,117 @@ class Epson_Thermal(object):
 
         self.write_bytes(byte_array)
 
+    # n = 0     1-dot-width
+    # n =1      2-dots-width
+    def underline_on(self, weight = 1):
+        byte_array = [
+            27,    # ESC
+            45,    # -
+            weight]
+        self.write_bytes(byte_array)
+
+    def underline_off(self):
+        byte_array = [
+            27,    # ESC
+            45,    # -
+            0]
+        self.write_bytes(byte_array)
+
+    def bold_on(self):
+        byte_array = [
+            27,     # ESC
+            69,      # E
+            1]
+        self.write_bytes(byte_array)
+
+    def bold_off(self):
+        byte_array = [
+            27,     # ESC
+            69,      # E
+            0]
+        self.write_bytes(byte_array)
+
+    # Set line spacing with a given number of dots. Default is 30
+    def set_line_spacing(self, dots):
+        byte_array = [
+            27,  # ESC
+            51,  # 3
+            dots]
+        self.write_bytes(byte_array)
+
+    def set_default_line_spacing(self):
+        byte_array = [
+            27,   # ESC
+            50]   #2
+        self.write_bytes(byte_array)
+
+    # Set the text size. width_magnification and height_magnification can be between 0(x1) and 7(x8)
+    def set_text_size(self, width_magnification, height_magnification):
+        if width_magnification < 0 or width_magnification > 7:
+            raise Exception("Width magnification should be between 0(x1) and 7(x8)")
+        if height_magnification < 0 or height_magnification > 7:
+            raise Exception("Height magnification should be between 0(x1) and 7(x8)")
+        n = 16 * width_magnification + height_magnification
+        byte_array = [
+            29,   #GS
+            33,   #!
+            n]
+        self.write_bytes(byte_array)
+
+    def center(self):
+        byte_array = [
+            27,   # ESC
+            97,    # a
+            1]
+        self.write_bytes(byte_array)
+
+    def left_justified(self):
+        byte_array = [
+            27,   # ESC
+            97,    # a
+            0]
+        self.write_bytes(byte_array)
+
+    def right_justified(self):
+        byte_array = [
+            27,   # ESC
+            97,    # a
+            2]
+        self.write_bytes(byte_array)
+
+
 
 if __name__ == '__main__':
     from util import BitmapData
     printer = Epson_Thermal(0x04b8,0x0e03)  # EPSON TM-T20
-    printer.print_text("Hello world")
+    printer.print_text("Hello, how's it going?")
+    printer.linefeed()
+    printer.print_text("Part of this")
+    printer.bold_on()
+    printer.print_text(" line is bold")
+    printer.bold_off()
+    printer.linefeed()
+    printer.underline_on()
+    printer.print_text("Underlined")
+    printer.underline_off()
+    printer.linefeed()
+    printer.right_justified()
+    printer.print_text("Right justified")
+    printer.linefeed()
+    printer.center()
+    printer.print_text("Center justified")
+    printer.linefeed()
+    printer.left_justified()
+    printer.print_text("Left justified")
+    printer.linefeed()
+    printer.set_text_size(1, 1)
+    printer.print_text("Double size text")
+    printer.set_text_size(0, 0)
+    printer.linefeed()
+    printer.print_text("Following is a bitmap")
     printer.linefeed()
     bitmap = BitmapData.fromFileImage("logo.png")
     printer.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
-    printer.linefeed()
+    printer.linefeed(4)
+    printer.cut()
 
