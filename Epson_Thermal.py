@@ -38,61 +38,63 @@ class Epson_Thermal(object):
         except usb.core.USBError as e:
             print("Could not set configuration: %s" % str(e))
 
-    def _write(self, msg):
+    def write_bytes(self, byte_array):
+        msg = ''.join([chr(b) for b in byte_array])
         self.printer.write(self.out_ep, msg, self.interface)
 
 
     def linefeed(self):
-        self._write(chr(10)) # LF
+        self.write_bytes([10]) # LF
 
     def print_text(self, msg):
-        self._write(msg)
+        self.printer.write(self.out_ep, msg, self.interface)
 
     def cut(self):
         byte_array = [
-            chr(29), # GS
-            chr(86), # V
-            chr(0)]  # \0
-        command = ''.join(byte_array)
-        self._write(command)
+            29, # GS
+            86, # V
+            0]  # \0
+        self.write_bytes(byte_array)
 
     def print_bitmap(self, pixels, w, h):
 
-        dyl = chr(2 * h % 256)
-        dyh = chr(int(2 * h / 256))
+        byte_array = []
+
+        dyl = 2 * h % 256
+        dyh = int(2 * h / 256)
 
         # Set the size of the print area
-        byte_array = [
-            chr(27),    # ESC
-            chr(87),    # W
-            chr(46),     # xL
-            chr(0),     # xH
-            chr(0),     # yL
-            chr(0),     # yH
-            chr(0),     # dxL
-            chr(2),     # dxH
+        byte_array.extend([
+            27,    # ESC
+            87,    # W
+            46,     # xL
+            0,     # xH
+            0,     # yL
+            0,     # yH
+            0,     # dxL
+            2,     # dxH
             dyl,
-            dyh]
+            dyh])
 
         # Enter page mode
-        byte_array.append(chr(27))
-        byte_array.append(chr(76))
+        byte_array.extend([
+            27,
+            76])
 
-        self._write(''.join(byte_array))
 
         # Calculate nL and nH
-        nh = chr(int(w / 256))
-        nl = chr(w % 256)
+        nh = int(w / 256)
+        nl = w % 256
 
         offset = 0
 
         while offset < h:
-            byte_array = [
-                chr(27),  # ESC
-                chr(42),  # *
-                chr(33),  # double density mode
+            byte_array.extend([
+                27,  # ESC
+                42,  # *
+                33,  # double density mode
                 nl,
-                nh]
+                nh])
 
             for x in range(w):
                 for k in range(3):
@@ -105,19 +107,19 @@ class Epson_Thermal(object):
                             v = pixels[i]
                         slice |= (v << (7 - b))
 
-                    byte_array.append(chr(slice))
+                    byte_array.append(slice)
 
             offset += 24
 
-            
-            byte_array.append(chr(27)) # ESC
-            byte_array.append(chr(74)) # J
-            byte_array.append(chr(48))
-            self._write(''.join(byte_array))
-
+            byte_array.extend([
+                27,   # ESC
+                74,   # J
+                48])
 
         # Return to standard mode
-        self._write(chr(12))
+        byte_array.append(12)
+
+        self.write_bytes(byte_array)
 
 
 if __name__ == '__main__':
