@@ -37,7 +37,7 @@ class Epson_Thermal(object):
 
     def write_bytes(self, byte_array):
         msg = ''.join([chr(b) for b in byte_array])
-        self.printer.write(self.out_ep, msg, self.interface)
+        self.printer.write(self.out_ep, msg, self.interface, timeout=20000)
 
     # Feeds by the specified number of lines
     def linefeed(self, lines = 1):
