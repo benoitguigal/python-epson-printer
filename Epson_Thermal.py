@@ -210,37 +210,3 @@ class Epson_Thermal(object):
 
 
 
-if __name__ == '__main__':
-    from util import BitmapData
-    printer = Epson_Thermal(0x04b8,0x0e03)  # EPSON TM-T20
-    printer.print_text("Hello, how's it going?")
-    printer.linefeed()
-    printer.print_text("Part of this")
-    printer.bold_on()
-    printer.print_text(" line is bold")
-    printer.bold_off()
-    printer.linefeed()
-    printer.underline_on()
-    printer.print_text("Underlined")
-    printer.underline_off()
-    printer.linefeed()
-    printer.right_justified()
-    printer.print_text("Right justified")
-    printer.linefeed()
-    printer.center()
-    printer.print_text("Center justified")
-    printer.linefeed()
-    printer.left_justified()
-    printer.print_text("Left justified")
-    printer.linefeed()
-    printer.set_text_size(1, 1)
-    printer.print_text("Double size text")
-    printer.set_text_size(0, 0)
-    printer.linefeed()
-    printer.print_text("Following is a bitmap")
-    printer.linefeed()
-    bitmap = BitmapData.fromFileImage("logo.png")
-    printer.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
-    printer.linefeed(4)
-    printer.cut()
-
