@@ -1,5 +1,3 @@
-__author__ = 'benoit'
-
 from PIL import Image
 
 

@@ -1,7 +1,4 @@
-__author__ = 'benoit'
-
 import usb.core
-from PIL import Image
 
 class Epson_Thermal(object):
 

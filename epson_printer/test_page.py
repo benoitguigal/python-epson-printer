@@ -1,7 +1,5 @@
-__author__ = 'benoit'
-
-from util import BitmapData
 from Epson_Thermal import Epson_Thermal
+from util import BitmapData
 from optparse import OptionParser
 
 if __name__ == '__main__':
