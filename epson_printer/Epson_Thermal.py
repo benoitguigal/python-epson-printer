@@ -41,13 +41,10 @@ class Epson_Thermal(object):
 
     # Feeds by the specified number of lines
     def linefeed(self, lines = 1):
-        if lines == 1:
-            self.write_bytes([10]) # LF
-        else:
-            self.write_bytes([
-                27,     # ESC
-                100,    # d
-                lines])
+        self.write_bytes([
+            27,     # ESC
+            100,    # d
+            lines])
 
     def print_text(self, msg):
         self.printer.write(self.out_ep, msg, self.interface)

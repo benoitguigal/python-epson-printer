@@ -40,5 +40,7 @@ if __name__ == '__main__':
         printer.linefeed()
         bitmap = BitmapData.fromFileImage("logo.png")
         printer.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
-        printer.linefeed(4)
+        printer.linefeed()
+        printer.print_text("Feeding paper 10 lines before cutting")
+        printer.linefeed(10)
         printer.cut()
