@@ -3,6 +3,26 @@ Python library for EPSON thermal printers
 
 A python library to control thermal printers based on the ESC/POS language as defined by Epson.
 
+### Installation
+Clone the project
+```
+git clone https://github.com/benoitguigal/python-epson-printer.git
+```
+Install dependencies
+```
+sudo python setup.py install
+```
+Connect your EPSON thermal printer via a USB port and run
+```
+lsusb
+Bus 001 Device 005: ID 04b8:0e03 Seiko Epson Corp.
+```
+Write down the vendor_id and the product_id and pass them as arguments to the test page
+```
+sudo python epson_printer/test_page.py -v 0x04b8 -p 0x0e03
+```
+
+
 ### Devices
 The library should work with all ESC/POS-based Epson printers but it has only been tested with a TM-T20.
 
@@ -23,6 +43,7 @@ The library should work with all ESC/POS-based Epson printers but it has only be
 
 ##### Hardware commands
 * full paper cut
+
 
 
 ### Credits
