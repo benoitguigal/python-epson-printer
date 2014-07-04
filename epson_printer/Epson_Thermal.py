@@ -202,5 +202,16 @@ class Epson_Thermal(object):
             2]
         self.write_bytes(byte_array)
 
+    def set_print_speed(self, speed):
+        byte_array = [
+            29,  # GS
+            40,  # (
+            75,  # K
+            2,
+            0,  
+            50,
+            speed]
+        self.write_bytes(byte_array)
+
 
 
