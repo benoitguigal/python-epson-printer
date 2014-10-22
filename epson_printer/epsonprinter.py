@@ -1,6 +1,10 @@
 import usb.core
+from .bitmapdata import BitmapData
 
-class Epson_Thermal(object):
+ESC = 27
+GS = 29
+
+class EpsonPrinter(object):
 
     printer = None
 
@@ -21,7 +25,7 @@ class Epson_Thermal(object):
         # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=self.idVendor, idProduct=self.idProduct)
         if self.printer is None:
-            print("Cable isn't plugged in")
+            raise Exception("Printer not found. Make sure the cable is plugged in ")
 
         if self.printer.is_kernel_driver_active(0):
             try:
@@ -37,25 +41,34 @@ class Epson_Thermal(object):
 
     def write_bytes(self, byte_array):
         msg = ''.join([chr(b) for b in byte_array])
+        self.write(msg)
+
+    def write(self, msg):
         self.printer.write(self.out_ep, msg, self.interface, timeout=20000)
+
 
     # Feeds by the specified number of lines
     def linefeed(self, lines = 1):
         self.write_bytes([
-            27,     # ESC
+            ESC,     # ESC
             100,    # d
             lines])
 
     def print_text(self, msg):
-        self.printer.write(self.out_ep, msg, self.interface)
+        self.write(msg)
 
     # Full paper cut
     def cut(self):
         byte_array = [
-            29, # GS
+            GS,
             86, # V
             0]  # \0
         self.write_bytes(byte_array)
+
+    def print_image(self, image):
+        bitmap = BitmapData.fromFileImage(image)
+        self.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
+
 
     # Print bitmap pixel array for the specified image width and image height
     # To convert an existing image to a 1 and 0 bitmap array, see util.BitmapData
@@ -68,7 +81,7 @@ class Epson_Thermal(object):
 
         # Set the size of the print area
         byte_array.extend([
-            27,    # ESC
+            ESC,
             87,    # W
             46,     # xL
             0,     # xH
@@ -93,7 +106,7 @@ class Epson_Thermal(object):
 
         while offset < h:
             byte_array.extend([
-                27,  # ESC
+                ESC,
                 42,  # *
                 33,  # double density mode
                 nl,
@@ -128,28 +141,28 @@ class Epson_Thermal(object):
     # n =1      2-dots-width
     def underline_on(self, weight = 1):
         byte_array = [
-            27,    # ESC
+            ESC,
             45,    # -
             weight]
         self.write_bytes(byte_array)
 
     def underline_off(self):
         byte_array = [
-            27,    # ESC
+            ESC,
             45,    # -
             0]
         self.write_bytes(byte_array)
 
     def bold_on(self):
         byte_array = [
-            27,     # ESC
+            ESC,
             69,      # E
             1]
         self.write_bytes(byte_array)
 
     def bold_off(self):
         byte_array = [
-            27,     # ESC
+            ESC,
             69,      # E
             0]
         self.write_bytes(byte_array)
@@ -157,14 +170,14 @@ class Epson_Thermal(object):
     # Set line spacing with a given number of dots. Default is 30
     def set_line_spacing(self, dots):
         byte_array = [
-            27,  # ESC
+            ESC,
             51,  # 3
             dots]
         self.write_bytes(byte_array)
 
     def set_default_line_spacing(self):
         byte_array = [
-            27,   # ESC
+            ESC,
             50]   #2
         self.write_bytes(byte_array)
 
@@ -176,42 +189,39 @@ class Epson_Thermal(object):
             raise Exception("Height magnification should be between 0(x1) and 7(x8)")
         n = 16 * width_magnification + height_magnification
         byte_array = [
-            29,   #GS
+            GS,
             33,   #!
             n]
         self.write_bytes(byte_array)
 
     def center(self):
         byte_array = [
-            27,   # ESC
+            ESC,
             97,    # a
             1]
         self.write_bytes(byte_array)
 
     def left_justified(self):
         byte_array = [
-            27,   # ESC
+            ESC,
             97,    # a
             0]
         self.write_bytes(byte_array)
 
     def right_justified(self):
         byte_array = [
-            27,   # ESC
+            ESC,
             97,    # a
             2]
         self.write_bytes(byte_array)
 
     def set_print_speed(self, speed):
         byte_array = [
-            29,  # GS
+            GS,  # GS
             40,  # (
             75,  # K
             2,
-            0,  
+            0,
             50,
             speed]
         self.write_bytes(byte_array)
-
-
-
