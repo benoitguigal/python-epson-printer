@@ -1,2 +1,2 @@
-__all__ = ["Espon_Thermal","test_page","util"]
+__all__ = ["epsonprinter","testpage","bitmapdata"]
 

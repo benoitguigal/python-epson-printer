@@ -1,6 +1,6 @@
-from Epson_Thermal import Epson_Thermal
-from util import BitmapData
+from .epsonprinter import EpsonPrinter
 from optparse import OptionParser
+import sys
 
 if __name__ == '__main__':
 
@@ -8,10 +8,10 @@ if __name__ == '__main__':
     parser.add_option("-v", "--idvendor", action="store", type="int", dest="id_vendor", help="The printer vendor id")
     parser.add_option("-p", "--idProduct", action="store", type="int", dest="id_product", help="The printer product id")
     options, args = parser.parse_args()
-    if (options.id_vendor == None or options.id_vendor == None):
+    if not options.id_vendor or not options.id_vendor:
         parser.print_help()
     else:
-        printer = Epson_Thermal(options.id_vendor, options.id_product)
+        printer = EpsonPrinter(options.id_vendor, options.id_product)
         printer.print_text("Hello, how's it going?")
         printer.linefeed()
         printer.print_text("Part of this")
@@ -38,9 +38,9 @@ if __name__ == '__main__':
         printer.linefeed()
         printer.print_text("Following is a bitmap")
         printer.linefeed()
-        bitmap = BitmapData.fromFileImage("logo.png")
-        printer.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
+        printer.print_image("logo.png")
         printer.linefeed()
         printer.print_text("Feeding paper 10 lines before cutting")
         printer.linefeed(10)
         printer.cut()
+        sys.exit(1)

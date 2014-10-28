@@ -1,6 +1,5 @@
 from PIL import Image
 
-
 class BitmapData:
 
     def __init__(self, pixels, w, h):
