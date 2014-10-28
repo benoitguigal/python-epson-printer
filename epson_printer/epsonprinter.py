@@ -1,4 +1,5 @@
 import usb.core
+from PIL import Image
 from .bitmapdata import BitmapData
 
 ESC = 27
@@ -65,13 +66,19 @@ class EpsonPrinter(object):
             0]  # \0
         self.write_bytes(byte_array)
 
+    # Print an image from a file
     def print_image(self, image):
-        bitmap = BitmapData.fromFileImage(image)
-        self.print_bitmap(bitmap.pixels, bitmap.width, bitmap.height)
+        i = Image.open(image)
+        (w, h) = i.size
+        if w > 512:
+            ratio = int(w / 512)
+            h = int(h / ratio)
+            i = i.resize((512, h), Image.ANTIALIAS)
+        i = i.convert('1')
+        self.print_bitmap(i.getdata(), w, h)
 
 
-    # Print bitmap pixel array for the specified image width and image height
-    # To convert an existing image to a 1 and 0 bitmap array, see util.BitmapData
+    # Print bitmap pixel array (0 and 255) for the specified image width and image height
     def print_bitmap(self, pixels, w, h):
 
         byte_array = []
@@ -120,7 +127,8 @@ class EpsonPrinter(object):
                         i = (y * w) + x
                         v = 0
                         if i < len(pixels):
-                            v = pixels[i]
+                            if pixels[i] != 255:
+                                v = 1
                         slice |= (v << (7 - b))
 
                     byte_array.append(slice)
