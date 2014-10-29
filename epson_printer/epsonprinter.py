@@ -75,7 +75,7 @@ class EpsonPrinter(object):
             h = int(h / ratio)
             i = i.resize((512, h), Image.ANTIALIAS)
         i = i.convert('1')
-        self.print_bitmap(i.getdata(), w, h)
+        self.print_bitmap(list(i.getdata()), w, h)
 
 
     # Print bitmap pixel array (0 and 255) for the specified image width and image height
