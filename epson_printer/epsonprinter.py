@@ -1,6 +1,6 @@
 import usb.core
 from PIL import Image
-from .bitmapdata import BitmapData
+
 
 ESC = 27
 GS = 29
