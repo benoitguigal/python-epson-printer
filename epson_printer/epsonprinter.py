@@ -75,11 +75,10 @@ class EpsonPrinter(object):
             h = int(h / ratio)
             i = i.resize((512, h), Image.ANTIALIAS)
         i = i.convert('1')
-        self.print_bitmap(list(i.getdata()), w, h)
+        byte_array = self.marshallpixels(list(i.getdata()), w, h)
+        self.write_bytes(byte_array)
 
-
-    # Print bitmap pixel array (0 and 255) for the specified image width and image height
-    def print_bitmap(self, pixels, w, h):
+    def marshallpixels(self, pixels, w, h):
 
         byte_array = []
 
@@ -143,7 +142,8 @@ class EpsonPrinter(object):
         # Return to standard mode
         byte_array.append(12)
 
-        self.write_bytes(byte_array)
+        return byte_array
+
 
     # n = 0     1-dot-width
     # n =1      2-dots-width
