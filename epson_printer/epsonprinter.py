@@ -5,7 +5,8 @@ from PIL import Image
 ESC = 27
 GS = 29
 
-class EpsonPrinter(object):
+
+class EpsonPrinter:
 
     printer = None
 
@@ -26,7 +27,7 @@ class EpsonPrinter(object):
         # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=self.idVendor, idProduct=self.idProduct)
         if self.printer is None:
-            raise Exception("Printer not found. Make sure the cable is plugged in ")
+            raise Exception("Printer not found. Make sure the cable is plugged in.")
 
         if self.printer.is_kernel_driver_active(0):
             try:
@@ -47,27 +48,26 @@ class EpsonPrinter(object):
     def write(self, msg):
         self.printer.write(self.out_ep, msg, self.interface, timeout=20000)
 
-
-    # Feeds by the specified number of lines
-    def linefeed(self, lines = 1):
+    def linefeed(self, lines=1):
+        """Feed by the specified number of lines."""
         self.write_bytes([
-            ESC,     # ESC
-            100,    # d
+            ESC,  # ESC
+            100,  # d
             lines])
 
     def print_text(self, msg):
         self.write(msg)
 
-    # Full paper cut
     def cut(self):
+        """Full paper cut."""
         byte_array = [
             GS,
-            86, # V
-            0]  # \0
+            86,  # V
+            0]   # \0
         self.write_bytes(byte_array)
 
-    # Print an image from a file
     def print_image(self, image):
+        """Print an image from a file."""
         i = Image.open(image)
         (w, h) = i.size
         if w > 512:
@@ -79,30 +79,26 @@ class EpsonPrinter(object):
         self.write_bytes(byte_array)
 
     def marshallpixels(self, pixels, w, h):
-
-        byte_array = []
-
         dyl = 2 * h % 256
         dyh = int(2 * h / 256)
 
         # Set the size of the print area
-        byte_array.extend([
+        byte_array = [
             ESC,
             87,    # W
-            46,     # xL
+            46,    # xL
             0,     # xH
             0,     # yL
             0,     # yH
             0,     # dxL
             2,     # dxH
             dyl,
-            dyh])
+            dyh]
 
         # Enter page mode
         byte_array.extend([
             27,
             76])
-
 
         # Calculate nL and nH
         nh = int(w / 256)
@@ -144,10 +140,9 @@ class EpsonPrinter(object):
 
         return byte_array
 
-
     # n = 0     1-dot-width
-    # n =1      2-dots-width
-    def underline_on(self, weight = 1):
+    # n = 1     2-dots-width
+    def underline_on(self, weight=1):
         byte_array = [
             ESC,
             45,    # -
@@ -175,8 +170,8 @@ class EpsonPrinter(object):
             0]
         self.write_bytes(byte_array)
 
-    # Set line spacing with a given number of dots. Default is 30
     def set_line_spacing(self, dots):
+        """Set line spacing with a given number of dots.  Default is 30."""
         byte_array = [
             ESC,
             51,  # 3
@@ -186,11 +181,13 @@ class EpsonPrinter(object):
     def set_default_line_spacing(self):
         byte_array = [
             ESC,
-            50]   #2
+            50]   # 2
         self.write_bytes(byte_array)
 
-    # Set the text size. width_magnification and height_magnification can be between 0(x1) and 7(x8)
     def set_text_size(self, width_magnification, height_magnification):
+        """Set the text size.  width_magnification and height_magnification can
+        be between 0(x1) and 7(x8).
+        """
         if width_magnification < 0 or width_magnification > 7:
             raise Exception("Width magnification should be between 0(x1) and 7(x8)")
         if height_magnification < 0 or height_magnification > 7:
@@ -198,7 +195,7 @@ class EpsonPrinter(object):
         n = 16 * width_magnification + height_magnification
         byte_array = [
             GS,
-            33,   #!
+            33,   # !
             n]
         self.write_bytes(byte_array)
 
