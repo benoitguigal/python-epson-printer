@@ -71,9 +71,10 @@ class EpsonPrinter(object):
         i = Image.open(image)
         (w, h) = i.size
         if w > 512:
-            ratio = int(w / 512)
-            h = int(h / ratio)
+            ratio = 512. / w
+            h = int(h * ratio)
             i = i.resize((512, h), Image.ANTIALIAS)
+            w, h = i.size
         i = i.convert('1')
         byte_array = self.marshallpixels(list(i.getdata()), w, h)
         self.write_bytes(byte_array)
