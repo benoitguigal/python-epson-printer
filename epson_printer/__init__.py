@@ -1,2 +1,2 @@
-__all__ = ["epsonprinter","testpage","bitmapdata"]
+__all__ = ["epsonprinter","testpage"]
 
