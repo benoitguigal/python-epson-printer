@@ -25,7 +25,8 @@ sudo python -m epson_printer.testpage -v 0x04b8 -p 0x0e03
 
 
 ### Devices
-The library should work with all ESC/POS-based Epson printers but it has only been tested with a TM-T20.
+The library should work with all ESC/POS-based Epson printers but it has only been tested with a TM-T20. If you have tested
+the library with a different model, please add it to the [list of supported printers](https://github.com/benoitguigal/python-epson-printer/wiki/List-of-supported-printers)
 
 ### ESC/POS commands
 
