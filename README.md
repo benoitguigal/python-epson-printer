@@ -10,6 +10,7 @@ git clone https://github.com/benoitguigal/python-epson-printer.git
 ```
 Install dependencies
 ```
+cd python-epson-printer
 sudo python setup.py install
 ```
 Connect your EPSON thermal printer via a USB port and run
@@ -19,7 +20,7 @@ Bus 001 Device 005: ID 04b8:0e03 Seiko Epson Corp.
 ```
 Write down the vendor_id and the product_id and pass them as arguments to the test page
 ```
-sudo python epson_printer/test_page.py -v 0x04b8 -p 0x0e03
+sudo python -m epson_printer.testpage -v 0x04b8 -p 0x0e03
 ```
 
 
