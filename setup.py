@@ -10,6 +10,6 @@ setup(name="python_epson_printer",
       author_email="benoit.guigal@gmail.com",
       packages=['epson_printer'],
       install_requires=[
-          'pyusb',
-          'Pillow'
+          'pyusb==1.0.0b1',
+          'Pillow==2.6'
       ])
