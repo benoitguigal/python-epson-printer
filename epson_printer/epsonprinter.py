@@ -1,3 +1,5 @@
+from __future__ import division
+import math
 import usb.core
 from PIL import Image
 from functools import wraps
@@ -85,8 +87,12 @@ def set_print_speed(speed):
 
 
 def marshall_pixels(pixels, w, h):
-    dyl = 2 * h % 256
-    dyh = int(2 * h / 256)
+
+    # account for double density and page mode approximate
+    height = int(math.ceil(h / 24) * 48)
+
+    dyl = height % 256
+    dyh = int(height / 256)
 
     # Set the size of the print area
     byte_array = [
