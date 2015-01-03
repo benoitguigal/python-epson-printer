@@ -87,15 +87,23 @@ def set_print_speed(speed):
 
 
 class PrintableImage:
-    """ A representation of an image ready to be printed """
+    """
+    Container for image data ready to be sent to the printer
+    The transformation from bitmap data to PrintableImage data is explained at the link below:
+    http://nicholas.piasecki.name/blog/2009/12/sending-a-bit-image-to-an-epson-tm-t88iii-receipt-printer-using-c-and-escpos/
+    """
 
-    def __init__(self, marshalled_pixels, height):
-        self.marshalled_pixels = marshalled_pixels
+    def __init__(self, data, height):
+        self.data = data
         self.height = height
-
 
     @classmethod
     def from_image(cls, image):
+        """
+        Create a PrintableImage from a PIL Image
+        :param image: a PIL Image
+        :return:
+        """
         (w, h) = image.size
         if w > 512:
             ratio = 512. / w
@@ -104,7 +112,7 @@ class PrintableImage:
         image = image.convert('1')
         pixels = list(image.getdata())
 
-        marshalled_pixels = []
+        data = []
         # account for double density and page mode approximate
         height = int(math.ceil(h / 24) * 48)
 
@@ -115,7 +123,7 @@ class PrintableImage:
         offset = 0
 
         while offset < h:
-            marshalled_pixels.extend([
+            data.extend([
                 ESC,
                 42,  # *
                 33,  # double density mode
@@ -134,28 +142,32 @@ class PrintableImage:
                                 v = 1
                         slice |= (v << (7 - b))
 
-                    marshalled_pixels.append(slice)
+                    data.append(slice)
 
             offset += 24
 
-            marshalled_pixels.extend([
+            data.extend([
                 27,   # ESC
                 74,   # J
                 48])
 
-        return cls(marshalled_pixels, height)
+        return cls(data, height)
 
 
     def append(self, other):
-        """ Append a printable image at the end of this image """
-        self.marshalled_pixels = self.marshalled_pixels.extend(other.marshalled_pixels)
+        """
+        Append a Printable Image at the end of the current instance.
+        :param other: another PrintableImage
+        :return: PrintableImage containing data from both self and other
+        """
+        self.data.extend(other.data)
         self.height = self.height + other.height
         return self
 
 
 
-
 class EpsonPrinter:
+    """ An Epson thermal printer based on ESC/POS"""
 
     printer = None
 
@@ -241,21 +253,24 @@ class EpsonPrinter:
             27,
             76])
 
-        byte_array.extend(printable_image.marshalled_pixels)
+        byte_array.extend(printable_image.data)
 
         # Return to standard mode
         byte_array.append(12)
 
         return byte_array
 
-    @write_this
     def print_images(self, *printable_images):
+        """
+        This method allows printing several images in one shot. This is useful if the client code does not want the
+        printer to make pause during printing
+        """
         printable_image = reduce(lambda x, y: x.append(y), list(printable_images))
         self.print_image(printable_image)
 
     def print_image_from_file(self, image_file):
         image = Image.open(image_file)
-        printable_image = PrintableImage(image)
+        printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
     @write_this
