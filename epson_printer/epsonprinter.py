@@ -86,74 +86,88 @@ def set_print_speed(speed):
     return byte_array
 
 
-def marshall_pixels(pixels, w, h):
+class PrintableImage:
+    """
+    Container for image data ready to be sent to the printer
+    The transformation from bitmap data to PrintableImage data is explained at the link below:
+    http://nicholas.piasecki.name/blog/2009/12/sending-a-bit-image-to-an-epson-tm-t88iii-receipt-printer-using-c-and-escpos/
+    """
 
-    # account for double density and page mode approximate
-    height = int(math.ceil(h / 24) * 48)
+    def __init__(self, data, height):
+        self.data = data
+        self.height = height
 
-    dyl = height % 256
-    dyh = int(height / 256)
+    @classmethod
+    def from_image(cls, image):
+        """
+        Create a PrintableImage from a PIL Image
+        :param image: a PIL Image
+        :return:
+        """
+        (w, h) = image.size
+        if w > 512:
+            ratio = 512. / w
+            h = int(h * ratio)
+            image = image.resize((512, h), Image.ANTIALIAS)
+        image = image.convert('1')
+        pixels = list(image.getdata())
 
-    # Set the size of the print area
-    byte_array = [
-        ESC,
-        87,    # W
-        46,    # xL
-        0,     # xH
-        0,     # yL
-        0,     # yH
-        0,     # dxL
-        2,     # dxH
-        dyl,
-        dyh]
+        data = []
+        # account for double density and page mode approximate
+        height = int(math.ceil(h / 24) * 48)
 
-    # Enter page mode
-    byte_array.extend([
-        27,
-        76])
+        # Calculate nL and nH
+        nh = int(w / 256)
+        nl = w % 256
 
-    # Calculate nL and nH
-    nh = int(w / 256)
-    nl = w % 256
+        offset = 0
 
-    offset = 0
+        while offset < h:
+            data.extend([
+                ESC,
+                42,  # *
+                33,  # double density mode
+                nl,
+                nh])
 
-    while offset < h:
-        byte_array.extend([
-            ESC,
-            42,  # *
-            33,  # double density mode
-            nl,
-            nh])
+            for x in range(w):
+                for k in range(3):
+                    slice = 0
+                    for b in range(8):
+                        y = offset + (k * 8) + b
+                        i = (y * w) + x
+                        v = 0
+                        if i < len(pixels):
+                            if pixels[i] != 255:
+                                v = 1
+                        slice |= (v << (7 - b))
 
-        for x in range(w):
-            for k in range(3):
-                slice = 0
-                for b in range(8):
-                    y = offset + (k * 8) + b
-                    i = (y * w) + x
-                    v = 0
-                    if i < len(pixels):
-                        if pixels[i] != 255:
-                            v = 1
-                    slice |= (v << (7 - b))
+                    data.append(slice)
 
-                byte_array.append(slice)
+            offset += 24
 
-        offset += 24
+            data.extend([
+                27,   # ESC
+                74,   # J
+                48])
 
-        byte_array.extend([
-            27,   # ESC
-            74,   # J
-            48])
+        return cls(data, height)
 
-    # Return to standard mode
-    byte_array.append(12)
 
-    return byte_array
+    def append(self, other):
+        """
+        Append a Printable Image at the end of the current instance.
+        :param other: another PrintableImage
+        :return: PrintableImage containing data from both self and other
+        """
+        self.data.extend(other.data)
+        self.height = self.height + other.height
+        return self
+
 
 
 class EpsonPrinter:
+    """ An Epson thermal printer based on ESC/POS"""
 
     printer = None
 
@@ -217,20 +231,47 @@ class EpsonPrinter:
         """Full paper cut."""
         return FULL_PAPER_CUT
 
-
     @write_this
-    def print_image(self, image):
-        """Print an image from a file."""
-        i = Image.open(image)
-        (w, h) = i.size
-        if w > 512:
-            ratio = 512. / w
-            h = int(h * ratio)
-            i = i.resize((512, h), Image.ANTIALIAS)
-            w, h = i.size
-        i = i.convert('1')
-        byte_array = marshall_pixels(list(i.getdata()), w, h)
+    def print_image(self, printable_image):
+        dyl = printable_image.height % 256
+        dyh = int(printable_image.height / 256)
+        # Set the size of the print area
+        byte_array = [
+            ESC,
+            87,    # W
+            46,    # xL
+            0,     # xH
+            0,     # yL
+            0,     # yH
+            0,     # dxL
+            2,     # dxH
+            dyl,
+            dyh]
+
+        # Enter page mode
+        byte_array.extend([
+            27,
+            76])
+
+        byte_array.extend(printable_image.data)
+
+        # Return to standard mode
+        byte_array.append(12)
+
         return byte_array
+
+    def print_images(self, *printable_images):
+        """
+        This method allows printing several images in one shot. This is useful if the client code does not want the
+        printer to make pause during printing
+        """
+        printable_image = reduce(lambda x, y: x.append(y), list(printable_images))
+        self.print_image(printable_image)
+
+    def print_image_from_file(self, image_file):
+        image = Image.open(image_file)
+        printable_image = PrintableImage.from_image(image)
+        self.print_image(printable_image)
 
     @write_this
     def underline_on(self, weight=1):

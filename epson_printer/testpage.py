@@ -38,7 +38,7 @@ if __name__ == '__main__':
         printer.linefeed()
         printer.print_text("Following is a bitmap")
         printer.linefeed()
-        printer.print_image("logo.png")
+        printer.print_image_from_file("logo.png")
         printer.linefeed()
         printer.print_text("Feeding paper 10 lines before cutting")
         printer.linefeed(10)
