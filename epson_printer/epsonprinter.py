@@ -86,71 +86,63 @@ def set_print_speed(speed):
     return byte_array
 
 
-def marshall_pixels(pixels, w, h):
+class PrintableImage:
+    """ A representation of an image ready to be printed """
 
-    # account for double density and page mode approximate
-    height = int(math.ceil(h / 24) * 48)
+    def __init__(self, image):
+        (w, h) = image.size
+        if w > 512:
+            ratio = 512. / w
+            h = int(h * ratio)
+            image = image.resize((512, h), Image.ANTIALIAS)
+        image = image.convert('1')
+        pixels = list(image.getdata())
 
-    dyl = height % 256
-    dyh = int(height / 256)
+        self.marshalled_pixels = []
+        # account for double density and page mode approximate
+        self.height = int(math.ceil(h / 24) * 48)
 
-    # Set the size of the print area
-    byte_array = [
-        ESC,
-        87,    # W
-        46,    # xL
-        0,     # xH
-        0,     # yL
-        0,     # yH
-        0,     # dxL
-        2,     # dxH
-        dyl,
-        dyh]
+        # Calculate nL and nH
+        nh = int(w / 256)
+        nl = w % 256
 
-    # Enter page mode
-    byte_array.extend([
-        27,
-        76])
+        offset = 0
 
-    # Calculate nL and nH
-    nh = int(w / 256)
-    nl = w % 256
+        while offset < h:
+            self.marshalled_pixels.extend([
+                ESC,
+                42,  # *
+                33,  # double density mode
+                nl,
+                nh])
 
-    offset = 0
+            for x in range(w):
+                for k in range(3):
+                    slice = 0
+                    for b in range(8):
+                        y = offset + (k * 8) + b
+                        i = (y * w) + x
+                        v = 0
+                        if i < len(pixels):
+                            if pixels[i] != 255:
+                                v = 1
+                        slice |= (v << (7 - b))
 
-    while offset < h:
-        byte_array.extend([
-            ESC,
-            42,  # *
-            33,  # double density mode
-            nl,
-            nh])
+                    self.marshalled_pixels.append(slice)
 
-        for x in range(w):
-            for k in range(3):
-                slice = 0
-                for b in range(8):
-                    y = offset + (k * 8) + b
-                    i = (y * w) + x
-                    v = 0
-                    if i < len(pixels):
-                        if pixels[i] != 255:
-                            v = 1
-                    slice |= (v << (7 - b))
+            offset += 24
 
-                byte_array.append(slice)
 
-        offset += 24
+            self.marshalled_pixels.extend([
+                27,   # ESC
+                74,   # J
+                48])
 
-        byte_array.extend([
-            27,   # ESC
-            74,   # J
-            48])
+    def append(self, other):
+        """ Append a printable image at the end of this image """
+        self.marshalled_pixels = self.marshalled_pixels.extend(other.marshalled_pixels)
+        self.height = self.height + other.height
 
-    # Return to standard mode
-    byte_array.append(12)
-
-    return byte_array
 
 
 class EpsonPrinter:
@@ -217,20 +209,44 @@ class EpsonPrinter:
         """Full paper cut."""
         return FULL_PAPER_CUT
 
+    @write_this
+    def print_image(self, printable_image):
+        dyl = printable_image.height % 256
+        dyh = int(printable_image.height / 256)
+        # Set the size of the print area
+        byte_array = [
+            ESC,
+            87,    # W
+            46,    # xL
+            0,     # xH
+            0,     # yL
+            0,     # yH
+            0,     # dxL
+            2,     # dxH
+            dyl,
+            dyh]
+
+        # Enter page mode
+        byte_array.extend([
+            27,
+            76])
+
+        byte_array.extend(printable_image.marshalled_pixels)
+
+        # Return to standard mode
+        byte_array.append(12)
+
+        return byte_array
 
     @write_this
-    def print_image(self, image):
-        """Print an image from a file."""
-        i = Image.open(image)
-        (w, h) = i.size
-        if w > 512:
-            ratio = 512. / w
-            h = int(h * ratio)
-            i = i.resize((512, h), Image.ANTIALIAS)
-            w, h = i.size
-        i = i.convert('1')
-        byte_array = marshall_pixels(list(i.getdata()), w, h)
-        return byte_array
+    def print_images(self, *printable_images):
+        printable_image = reduce(lambda x, y: x.append(y), printable_images)
+        self.print_image(printable_image)
+
+    def print_PIL_image(self, image):
+        printable_image = PrintableImage(image)
+        self.print_image(printable_image)
+
 
     @write_this
     def underline_on(self, weight=1):
