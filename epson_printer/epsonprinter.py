@@ -89,7 +89,13 @@ def set_print_speed(speed):
 class PrintableImage:
     """ A representation of an image ready to be printed """
 
-    def __init__(self, image):
+    def __init__(self, marshalled_pixels, height):
+        self.marshalled_pixels = marshalled_pixels
+        self.height = height
+
+
+    @classmethod
+    def from_image(cls, image):
         (w, h) = image.size
         if w > 512:
             ratio = 512. / w
@@ -98,9 +104,9 @@ class PrintableImage:
         image = image.convert('1')
         pixels = list(image.getdata())
 
-        self.marshalled_pixels = []
+        marshalled_pixels = []
         # account for double density and page mode approximate
-        self.height = int(math.ceil(h / 24) * 48)
+        height = int(math.ceil(h / 24) * 48)
 
         # Calculate nL and nH
         nh = int(w / 256)
@@ -109,7 +115,7 @@ class PrintableImage:
         offset = 0
 
         while offset < h:
-            self.marshalled_pixels.extend([
+            marshalled_pixels.extend([
                 ESC,
                 42,  # *
                 33,  # double density mode
@@ -128,20 +134,24 @@ class PrintableImage:
                                 v = 1
                         slice |= (v << (7 - b))
 
-                    self.marshalled_pixels.append(slice)
+                    marshalled_pixels.append(slice)
 
             offset += 24
 
-
-            self.marshalled_pixels.extend([
+            marshalled_pixels.extend([
                 27,   # ESC
                 74,   # J
                 48])
+
+        return cls(marshalled_pixels, height)
+
 
     def append(self, other):
         """ Append a printable image at the end of this image """
         self.marshalled_pixels = self.marshalled_pixels.extend(other.marshalled_pixels)
         self.height = self.height + other.height
+        return self
+
 
 
 
@@ -240,7 +250,7 @@ class EpsonPrinter:
 
     @write_this
     def print_images(self, *printable_images):
-        printable_image = reduce(lambda x, y: x.append(y), printable_images)
+        printable_image = reduce(lambda x, y: x.append(y), list(printable_images))
         self.print_image(printable_image)
 
     def print_image_from_file(self, image_file):
