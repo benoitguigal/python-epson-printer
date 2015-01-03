@@ -243,10 +243,10 @@ class EpsonPrinter:
         printable_image = reduce(lambda x, y: x.append(y), printable_images)
         self.print_image(printable_image)
 
-    def print_PIL_image(self, image):
+    def print_image_from_file(self, image_file):
+        image = Image.open(image_file)
         printable_image = PrintableImage(image)
         self.print_image(printable_image)
-
 
     @write_this
     def underline_on(self, weight=1):
