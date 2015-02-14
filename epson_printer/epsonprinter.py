@@ -109,10 +109,9 @@ def marshall_stripe(stripe, w):
                 y = (k * 8) + b
                 i = (y * w) + x
                 v = 0
-                if stripe[i] == 255:
-                    v = 0
-                else:
-                    v = 1
+                if i < len(stripe):
+                    if stripe[i] != 255:
+                        v = 1
                 slice |= (v << (7 - b))
 
             data.append(slice)
@@ -165,7 +164,7 @@ class PrintableImage:
 
         pool = Pool(processes=CPU_COUNT)
 
-        stripes = [pixels[i:i+24*w] for i in range(0, nb_stripes)]
+        stripes = [pixels[24*w*i:24*w*(i+1)] for i in range(0, nb_stripes)]
 
         marshalled_stripes = pool.map(marshall_stripe_star, itertools.izip(stripes, itertools.repeat(w)))
         merged = list(itertools.chain.from_iterable(marshalled_stripes))
