@@ -88,6 +88,49 @@ def set_print_speed(speed):
 
 CPU_COUNT = cpu_count()
 
+
+def marshall_stripe(stripe, w):
+
+    # Calculate nL and nH
+    nh = int(w / 256)
+    nl = w % 256
+
+    data = []
+    data.extend([
+        ESC,
+        42,  # *
+        33,  # double density mode
+        nl,
+        nh])
+    for x in range(w):
+        for k in range(3):
+            slice = 0
+            for b in range(8):
+                y = (k * 8) + b
+                i = (y * w) + x
+                v = 0
+                if stripe[i] == 255:
+                    v = 0
+                else:
+                    v = 1
+                slice |= (v << (7 - b))
+
+            data.append(slice)
+
+    data.extend([
+        27,   # ESC
+        74,   # J
+        48])
+
+    return data
+
+
+def marshall_stripe_star(stripe_w):
+    """ See http://stackoverflow.com/questions/5442910/python-multiprocessing-pool-map-for-multiple-arguments """
+    return marshall_stripe(*stripe_w)
+
+
+
 class PrintableImage:
     """
     Container for image data ready to be sent to the printer
@@ -116,50 +159,15 @@ class PrintableImage:
         image = image.convert('1')
         pixels = list(image.getdata())
 
-        nb_stripes = math.ceil(h / 24)
+        nb_stripes = int(math.ceil(h / 24))
         # account for double density and page mode approximate
         height = int(nb_stripes * 48)
-
-        # Calculate nL and nH
-        nh = int(w / 256)
-        nl = w % 256
 
         pool = Pool(processes=CPU_COUNT)
 
         stripes = [pixels[i:i+24*w] for i in range(0, nb_stripes)]
 
-        def marshall_stripe(stripe):
-            data = []
-            data.extend([
-                ESC,
-                42,  # *
-                33,  # double density mode
-                nl,
-                nh])
-            for x in range(w):
-                for k in range(3):
-                    slice = 0
-                    for b in range(8):
-                        y = (k * 8) + b
-                        i = (y * w) + x
-                        v = 0
-                        if stripe[i] == 255:
-                            v = 0
-                        else:
-                            v = 1
-                        slice |= (v << (7 - b))
-
-                    data.append(slice)
-
-            data.extend([
-                27,   # ESC
-                74,   # J
-                48])
-
-            return data
-
-
-        marshalled_stripes = pool.map(marshall_stripe, stripes)
+        marshalled_stripes = pool.map(marshall_stripe_star, itertools.izip(stripes, itertools.repeat(w)))
         merged = list(itertools.chain.from_iterable(marshalled_stripes))
 
         return cls(merged, height)
