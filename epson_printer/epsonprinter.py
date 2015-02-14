@@ -1,9 +1,10 @@
 from __future__ import division
 import math
 import usb.core
+import itertools
 from PIL import Image
 from functools import wraps
-
+from multiprocessing import Pool, cpu_count
 
 ESC = 27
 GS = 29
@@ -85,6 +86,7 @@ def set_print_speed(speed):
         speed]
     return byte_array
 
+CPU_COUNT = cpu_count()
 
 class PrintableImage:
     """
@@ -96,6 +98,8 @@ class PrintableImage:
     def __init__(self, data, height):
         self.data = data
         self.height = height
+
+
 
     @classmethod
     def from_image(cls, image):
@@ -112,46 +116,53 @@ class PrintableImage:
         image = image.convert('1')
         pixels = list(image.getdata())
 
-        data = []
+        nb_stripes = math.ceil(h / 24)
         # account for double density and page mode approximate
-        height = int(math.ceil(h / 24) * 48)
+        height = int(nb_stripes * 48)
 
         # Calculate nL and nH
         nh = int(w / 256)
         nl = w % 256
 
-        offset = 0
+        pool = Pool(processes=CPU_COUNT)
 
-        while offset < h:
+        stripes = [pixels[i:i+24*w] for i in range(0, nb_stripes)]
+
+        def marshall_stripe(stripe):
+            data = []
             data.extend([
                 ESC,
                 42,  # *
                 33,  # double density mode
                 nl,
                 nh])
-
             for x in range(w):
                 for k in range(3):
                     slice = 0
                     for b in range(8):
-                        y = offset + (k * 8) + b
+                        y = (k * 8) + b
                         i = (y * w) + x
                         v = 0
-                        if i < len(pixels):
-                            if pixels[i] != 255:
-                                v = 1
+                        if stripe[i] == 255:
+                            v = 0
+                        else:
+                            v = 1
                         slice |= (v << (7 - b))
 
                     data.append(slice)
-
-            offset += 24
 
             data.extend([
                 27,   # ESC
                 74,   # J
                 48])
 
-        return cls(data, height)
+            return data
+
+
+        marshalled_stripes = pool.map(marshall_stripe, stripes)
+        merged = list(itertools.chain.from_iterable(marshalled_stripes))
+
+        return cls(merged, height)
 
 
     def append(self, other):
