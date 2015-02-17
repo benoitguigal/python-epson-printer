@@ -2,9 +2,9 @@ from __future__ import division
 import math
 import usb.core
 import itertools
-from PIL import Image
 from functools import wraps
 from multiprocessing import Pool, cpu_count
+from PIL import Image
 
 ESC = 27
 GS = 29
@@ -90,6 +90,13 @@ CPU_COUNT = cpu_count()
 
 
 def marshall_stripe(stripe, w):
+    """
+    Re-arrange a 24 bits height stripe of pixels into a top to bottom then left to right array
+    See http://nicholas.piasecki.name/blog/2009/12/sending-a-bit-image-to-an-epson-tm-t88iii-receipt-printer-using-c-and-escpos/
+    :param stripe: pixels of the stripe
+    :param w: width of the stripe
+    :return:
+    """
 
     # Calculate nL and nH
     nh = int(w / 256)
@@ -129,7 +136,6 @@ def marshall_stripe_star(stripe_w):
     return marshall_stripe(*stripe_w)
 
 
-
 class PrintableImage:
     """
     Container for image data ready to be sent to the printer
@@ -141,8 +147,6 @@ class PrintableImage:
         self.data = data
         self.height = height
 
-
-
     @classmethod
     def from_image(cls, image):
         """
@@ -151,6 +155,8 @@ class PrintableImage:
         :return:
         """
         (w, h) = image.size
+
+        # Thermal paper is 512 pixels wide
         if w > 512:
             ratio = 512. / w
             h = int(h * ratio)
@@ -162,15 +168,13 @@ class PrintableImage:
         # account for double density and page mode approximate
         height = int(nb_stripes * 48)
 
+        # Balance the data processing between different cores (this is particularly useful on Raspberry Pi 2)
         pool = Pool(processes=CPU_COUNT)
-
         stripes = [pixels[24*w*i:24*w*(i+1)] for i in range(0, nb_stripes)]
-
         marshalled_stripes = pool.map(marshall_stripe_star, itertools.izip(stripes, itertools.repeat(w)))
         merged = list(itertools.chain.from_iterable(marshalled_stripes))
 
         return cls(merged, height)
-
 
     def append(self, other):
         """
@@ -183,7 +187,6 @@ class PrintableImage:
         return self
 
 
-
 class EpsonPrinter:
     """ An Epson thermal printer based on ESC/POS"""
 
@@ -191,15 +194,15 @@ class EpsonPrinter:
 
     def __init__(self, id_vendor, id_product, interface=0, in_ep=0x82, out_ep=0x01):
         """
-        @param idVendor  : Vendor ID
-        @param idProduct : Product ID
+        @param id_vendor  : Vendor ID
+        @param id_product : Product ID
         @param interface : USB device interface
         @param in_ep     : Input end point
         @param out_ep    : Output end point
         """
         self.interface = interface
-        self.in_ep     = in_ep
-        self.out_ep    = out_ep
+        self.in_ep = in_ep
+        self.out_ep = out_ep
 
         # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=id_vendor, idProduct=id_product)
@@ -227,7 +230,6 @@ class EpsonPrinter:
             byte_array = func(self, *args, **kwargs)
             self.write_bytes(byte_array)
         return wrapper
-
 
     def write_bytes(self, byte_array):
         msg = ''.join([chr(b) for b in byte_array])
