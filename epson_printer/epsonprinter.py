@@ -173,6 +173,8 @@ class PrintableImage:
         stripes = [pixels[24*w*i:24*w*(i+1)] for i in range(0, nb_stripes)]
         marshalled_stripes = pool.map(marshall_stripe_star, itertools.izip(stripes, itertools.repeat(w)))
         merged = list(itertools.chain.from_iterable(marshalled_stripes))
+        pool.close()
+        pool.join()
 
         return cls(merged, height)
 
