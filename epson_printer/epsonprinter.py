@@ -86,29 +86,6 @@ def set_print_speed(speed):
         speed]
     return byte_array
 
-def marshall_stripe(stripe, w):
-    stripe = stripe.reshape(-1, 8)
-    # Calculate nL and nH
-    nh = int(w / 256)
-    nl = w % 256
-    data = []
-    data.extend([
-        ESC,
-        42,  # *
-        33,  # double density mode
-        nl,
-        nh])
-
-    bytes_pixels = np.invert(np.packbits(stripe)).flatten()
-    data.extend(bytes_pixels)
-    data.extend([
-        27,   # ESC
-        74,   # J
-        48])
-    return data
-
-
-
 
 class PrintableImage:
     """
@@ -146,14 +123,16 @@ class PrintableImage:
         pixels = np.vstack((pixels, extra_pixels))
         h += extra_rows
         nb_stripes = h / 24
-        pixels = pixels.reshape(nb_stripes, 24, w).swapaxes(1, 2).flatten()
-        stripes = np.split(pixels, nb_stripes)
+        pixels = pixels.reshape(nb_stripes, 24, w).swapaxes(1, 2).reshape(-1, 8)
+
         nh = int(w / 256)
         nl = w % 256
         data = []
 
+        pixels = np.invert(np.packbits(pixels))
+        stripes = np.split(pixels, nb_stripes)
+
         for stripe in stripes:
-            stripe = stripe.reshape(-1, 8)
 
             data.extend([
                 ESC,
@@ -162,8 +141,7 @@ class PrintableImage:
                 nl,
                 nh])
 
-            bytes_pixels = np.invert(np.packbits(stripe)).flatten()
-            data.extend(bytes_pixels)
+            data.extend(stripe)
             data.extend([
                 27,   # ESC
                 74,   # J

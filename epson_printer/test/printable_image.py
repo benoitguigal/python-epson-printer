@@ -14,7 +14,6 @@ class TestPrintableImage(unittest.TestCase):
         print elapsed
         height = printable.height
         data = printable.data
-        #print data
         self.assertEqual(height, 432)
         expected = [27, 42, 33, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
