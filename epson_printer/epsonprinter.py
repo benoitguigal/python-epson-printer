@@ -88,16 +88,6 @@ def set_print_speed(speed):
     return byte_array
 
 
-def to_byte(array):
-    it = np.nditer(array, flags=['f_index'])
-    byte = 0
-    while not it.finished:
-        v = 0 if it[0] else 1
-        byte |= (v << (7 - it.index))
-        it.iternext()
-    return byte
-
-
 class PrintableImage:
     """
     Container for image data ready to be sent to the printer
@@ -150,7 +140,7 @@ class PrintableImage:
                 nl,
                 nh])
 
-            bytes_pixels = np.apply_along_axis(to_byte, 1, stripe).flatten()
+            bytes_pixels = np.invert(np.packbits(stripe)).flatten()
             data.extend(bytes_pixels)
             data.extend([
                 27,   # ESC
