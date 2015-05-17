@@ -4,7 +4,6 @@ import numpy as np
 import usb.core
 import itertools
 from functools import wraps
-from multiprocessing import Pool, cpu_count
 from PIL import Image
 
 ESC = 27
@@ -87,6 +86,29 @@ def set_print_speed(speed):
         speed]
     return byte_array
 
+def marshall_stripe(stripe, w):
+    stripe = stripe.reshape(-1, 8)
+    # Calculate nL and nH
+    nh = int(w / 256)
+    nl = w % 256
+    data = []
+    data.extend([
+        ESC,
+        42,  # *
+        33,  # double density mode
+        nl,
+        nh])
+
+    bytes_pixels = np.invert(np.packbits(stripe)).flatten()
+    data.extend(bytes_pixels)
+    data.extend([
+        27,   # ESC
+        74,   # J
+        48])
+    return data
+
+
+
 
 class PrintableImage:
     """
@@ -123,14 +145,14 @@ class PrintableImage:
         extra_pixels = np.ones((extra_rows, w), dtype=bool)
         pixels = np.vstack((pixels, extra_pixels))
         h += extra_rows
-
-        pixels = pixels.reshape(h / 24, 24, w).swapaxes(1, 2).reshape(h / 24, -1)
-        # Calculate nL and nH
+        nb_stripes = h / 24
+        pixels = pixels.reshape(nb_stripes, 24, w).swapaxes(1, 2).flatten()
+        stripes = np.split(pixels, nb_stripes)
         nh = int(w / 256)
         nl = w % 256
         data = []
 
-        for stripe in pixels:
+        for stripe in stripes:
             stripe = stripe.reshape(-1, 8)
 
             data.extend([
