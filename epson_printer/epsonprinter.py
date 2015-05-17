@@ -1,5 +1,6 @@
 from __future__ import division
 import math
+import numpy as np
 import usb.core
 import itertools
 from functools import wraps
@@ -86,54 +87,15 @@ def set_print_speed(speed):
         speed]
     return byte_array
 
-CPU_COUNT = cpu_count()
 
-
-def marshall_stripe(stripe, w):
-    """
-    Re-arrange a 24 bits height stripe of pixels into a top to bottom then left to right array
-    See http://nicholas.piasecki.name/blog/2009/12/sending-a-bit-image-to-an-epson-tm-t88iii-receipt-printer-using-c-and-escpos/
-    :param stripe: pixels of the stripe
-    :param w: width of the stripe
-    :return:
-    """
-
-    # Calculate nL and nH
-    nh = int(w / 256)
-    nl = w % 256
-
-    data = []
-    data.extend([
-        ESC,
-        42,  # *
-        33,  # double density mode
-        nl,
-        nh])
-    for x in range(w):
-        for k in range(3):
-            slice = 0
-            for b in range(8):
-                y = (k * 8) + b
-                i = (y * w) + x
-                v = 0
-                if i < len(stripe):
-                    if stripe[i] != 255:
-                        v = 1
-                slice |= (v << (7 - b))
-
-            data.append(slice)
-
-    data.extend([
-        27,   # ESC
-        74,   # J
-        48])
-
-    return data
-
-
-def marshall_stripe_star(stripe_w):
-    """ See http://stackoverflow.com/questions/5442910/python-multiprocessing-pool-map-for-multiple-arguments """
-    return marshall_stripe(*stripe_w)
+def to_byte(array):
+    it = np.nditer(array, flags=['f_index'])
+    byte = 0
+    while not it.finished:
+        v = 0 if it[0] else 1
+        byte |= (v << (7 - it.index))
+        it.iternext()
+    return byte
 
 
 class PrintableImage:
@@ -161,22 +123,43 @@ class PrintableImage:
             ratio = 512. / w
             h = int(h * ratio)
             image = image.resize((512, h), Image.ANTIALIAS)
-        image = image.convert('1')
-        pixels = list(image.getdata())
+        if image.mode != '1':
+            image = image.convert('1')
 
-        nb_stripes = int(math.ceil(h / 24))
-        # account for double density and page mode approximate
-        height = int(nb_stripes * 48)
+        pixels = np.array(list(image.getdata())).reshape(h, w)
 
-        # Balance the data processing between different cores (this is particularly useful on Raspberry Pi 2)
-        pool = Pool(processes=CPU_COUNT)
-        stripes = [pixels[24*w*i:24*w*(i+1)] for i in range(0, nb_stripes)]
-        marshalled_stripes = pool.map(marshall_stripe_star, itertools.izip(stripes, itertools.repeat(w)))
-        merged = list(itertools.chain.from_iterable(marshalled_stripes))
-        pool.close()
-        pool.join()
+        # Add white pixels so that image fits into bytes
+        extra_rows = int(math.ceil(h / 24)) * 24 - h
+        extra_pixels = np.ones((extra_rows, w), dtype=bool)
+        pixels = np.vstack((pixels, extra_pixels))
+        h += extra_rows
 
-        return cls(merged, height)
+        pixels = pixels.reshape(h / 24, 24, w).swapaxes(1, 2).reshape(h / 24, -1)
+        # Calculate nL and nH
+        nh = int(w / 256)
+        nl = w % 256
+        data = []
+
+        for stripe in pixels:
+            stripe = stripe.reshape(-1, 8)
+
+            data.extend([
+                ESC,
+                42,  # *
+                33,  # double density mode
+                nl,
+                nh])
+
+            bytes_pixels = np.apply_along_axis(to_byte, 1, stripe).flatten()
+            data.extend(bytes_pixels)
+            data.extend([
+                27,   # ESC
+                74,   # J
+                48])
+
+        # account for double density mode
+        height = h * 2
+        return cls(data, height)
 
     def append(self, other):
         """
