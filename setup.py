@@ -10,5 +10,6 @@ setup(name="python_epson_printer",
       packages=['epson_printer'],
       install_requires=[
           'pyusb==1.0.0b1',
-          'Pillow==2.6'
+          'Pillow==2.6',
+          'numpy==1.9.2'
       ])

@@ -5,3 +5,4 @@ eggs
 build
 *.pyc
 *.pyo
+virtualenv
