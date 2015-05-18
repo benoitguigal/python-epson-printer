@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name="python_epson_printer",
-      version="1.6",
+      version="1.7",
       description="A library to control Epson thermal printers based on ESC/POS language",
       url="https://github.com/benoitguigal/python-epson-printer",
       author="benoitguigal",
@@ -10,6 +10,5 @@ setup(name="python_epson_printer",
       packages=['epson_printer'],
       install_requires=[
           'pyusb==1.0.0b1',
-          'Pillow==2.6',
-          'numpy==1.9.2'
+          'Pillow==2.6'
       ])

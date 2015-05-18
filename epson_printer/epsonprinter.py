@@ -1,8 +1,9 @@
 from __future__ import division
 import math
+import io
+import base64
 import numpy as np
 import usb.core
-import itertools
 from functools import wraps
 from PIL import Image
 
@@ -265,6 +266,11 @@ class EpsonPrinter:
 
     def print_image_from_file(self, image_file):
         image = Image.open(image_file)
+        printable_image = PrintableImage.from_image(image)
+        self.print_image(printable_image)
+
+    def print_image_from_buffer(self, data):
+        image = Image.open(io.BytesIO(base64.b64decode(data)))
         printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
