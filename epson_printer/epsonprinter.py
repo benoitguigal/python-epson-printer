@@ -267,14 +267,14 @@ class EpsonPrinter:
     def print_image_from_file(self, image_file, rotate=False):
         image = Image.open(image_file)
         if rotate:
-            image.rotate(180)
+            image = image.rotate(180)
         printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
     def print_image_from_buffer(self, data, rotate=False):
         image = Image.open(io.BytesIO(base64.b64decode(data)))
         if rotate:
-            image.rotate(180)
+            image = image.rotate(180)
         printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
