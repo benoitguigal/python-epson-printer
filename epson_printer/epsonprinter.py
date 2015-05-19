@@ -264,13 +264,17 @@ class EpsonPrinter:
         printable_image = reduce(lambda x, y: x.append(y), list(printable_images))
         self.print_image(printable_image)
 
-    def print_image_from_file(self, image_file):
+    def print_image_from_file(self, image_file, rotate=False):
         image = Image.open(image_file)
+        if rotate:
+            image.rotate(180)
         printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
-    def print_image_from_buffer(self, data):
+    def print_image_from_buffer(self, data, rotate=False):
         image = Image.open(io.BytesIO(base64.b64decode(data)))
+        if rotate:
+            image.rotate(180)
         printable_image = PrintableImage.from_image(image)
         self.print_image(printable_image)
 
