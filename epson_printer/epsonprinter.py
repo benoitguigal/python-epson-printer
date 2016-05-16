@@ -168,7 +168,7 @@ class EpsonPrinter:
 
     printer = None
 
-    def __init__(self, id_vendor, id_product, interface=0, in_ep=0x82, out_ep=0x01):
+    def __init__(self, id_vendor, id_product, out_ep=0x01):
         """
         @param id_vendor  : Vendor ID
         @param id_product : Product ID
@@ -176,14 +176,13 @@ class EpsonPrinter:
         @param in_ep     : Input end point
         @param out_ep    : Output end point
         """
-        self.interface = interface
-        self.in_ep = in_ep
+
         self.out_ep = out_ep
 
         # Search device on USB tree and set is as printer
         self.printer = usb.core.find(idVendor=id_vendor, idProduct=id_product)
         if self.printer is None:
-            raise Exception("Printer not found. Make sure the cable is plugged in.")
+            raise ValueError("Printer not found. Make sure the cable is plugged in.")
 
         if self.printer.is_kernel_driver_active(0):
             try:
@@ -212,7 +211,7 @@ class EpsonPrinter:
         self.write(msg)
 
     def write(self, msg):
-        self.printer.write(self.out_ep, msg, self.interface, timeout=20000)
+        self.printer.write(self.out_ep, msg, timeout=20000)
 
     def print_text(self, msg):
         self.write(msg)
